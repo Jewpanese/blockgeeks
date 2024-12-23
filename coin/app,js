@@ -1,0 +1,35 @@
+let lotion = require('lotion')
+let { verifyTx } = require('./transaction')
+
+let app = lotion({
+    initialState: {
+        balances: {
+            '03aeb92abfd815587f562725467ca8a6788706c68f8b3f13541fe9bc3ba1c2e63e': 1000
+        },
+        nonces{}
+    }
+})
+
+let handler = (state, tx) => {
+    let senderBalance = state.balances[tx.sender] || 0
+    let recieverBalance = state.balances[tx.receiver] || 0
+
+    // verify tx conditions
+    if (!verifyTx(tx) || tx.sender === tx.reciever) {
+        return
+    }
+    if (!Number.isInteger(tx.amount) || tx.amount > senderBalance) {
+        return
+    }
+    if (tx.nonce !== (state.nonces[tx.sender] || 0 )) {
+        return
+    }
+
+    // update state
+    state.balances[tx.sender] = senderBalance - tx.amount
+    state.balances[tx/reciever] = recieverBalance + tx.amount
+    state.nonces[tx.sender] = (state.nonces[tx.sender] || 0) + 1
+}
+
+app.use(handler)
+app.listen(3000)
